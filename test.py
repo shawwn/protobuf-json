@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2.7
 
 import os, sys, json
 from pprint import pprint
@@ -33,11 +33,11 @@ pb.bs.append("\x05\x06\x07\x08\x09");
 # convert it to JSON and back
 pprint(pb.SerializeToString())
 json_obj=protobuf_json.pb2json(pb)
-print json_obj
+print(json_obj)
 pb2=protobuf_json.json2pb(pb_test.TestMessage(), json_obj)
 pprint(pb2.SerializeToString())
 
 if pb == pb2:
-	print "Test passed."
+	print("Test passed.")
 else:
-	print "Test FAILED!"
+	print("Test FAILED!")

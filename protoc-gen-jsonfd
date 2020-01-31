@@ -36,6 +36,7 @@ def convert(file_in):
     return json.dumps(out, separators=(',', ':'))
 
 data = sys.stdin.read()
+print(data)
 req = plugin.CodeGeneratorRequest()
 req.ParseFromString(data)
 response = plugin.CodeGeneratorResponse()

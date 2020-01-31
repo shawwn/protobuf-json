@@ -43,13 +43,45 @@ __author__='Paul Dovbush <dpp@dpp.su>'
 
 import json     # py2.6+ TODO: add support for other JSON serialization modules
 from google.protobuf.descriptor import FieldDescriptor as FD
+from google.protobuf import timestamp_pb2
 from functools import partial
+import datetime
 
 class ParseError(Exception): pass
 
+from dateutil.parser import parse
+
+def parsetime(x):
+  if isinstance(x, str) or isinstance(x, unicode):
+    x = parse(x)
+  if x.utcoffset() is not None:
+    return x.replace(tzinfo=None) - x.utcoffset()
+  else:
+    return x.replace(tzinfo=None)
+
+def parse_time(ts, v):
+  if isinstance(v, str) or isinstance(v, unicode):
+    v = parsetime(v)
+  if isinstance(v, datetime.datetime):
+    ts = ts.FromDatetime(v)
+    #v = v.utcnow().isoformat() + 'Z'
+    return ts
+  if isinstance(v, timestamp_pb2.Timestamp):
+    #v = v.ToJsonString()
+    ts = ts.FromString(v.SerializeToString())
+    return ts
+  raise Exception("Couldn't parse time")
+  #ts.FromJsonString(v)
+
+def is_time_field(field):
+    return field.message_type and field.message_type.full_name == 'google.protobuf.Timestamp'
 
 def json2pb(pb, js, useFieldNumber=False):
     ''' convert JSON string to google.protobuf.descriptor instance '''
+    if isinstance(js, datetime.datetime):
+      js = parsetime(js).isoformat() + 'Z'
+    if isinstance(js, timestamp_pb2.Timestamp):
+      js = js.ToJsonString()
     for field in pb.DESCRIPTOR.fields:
         if useFieldNumber:
             key = field.number
@@ -64,7 +96,14 @@ def json2pb(pb, js, useFieldNumber=False):
         else:
             raise ParseError("Field %s.%s of type '%d' is not supported" % (pb.__class__.__name__, field.name, field.type, ))
         value = js[key]
-        if field.label == FD.LABEL_REPEATED:
+        if is_time_field(field):
+            if field.label == FD.LABEL_REPEATED:
+                pb_value = getattr(pb, field.name, None)
+                for v in value:
+                    parse_time(pb_value.add(), v)
+            else:
+                parse_time(getattr(pb, field.name, None), value)
+        elif field.label == FD.LABEL_REPEATED:
             pb_value = getattr(pb, field.name, None)
             for v in value:
                 if field.type == FD.TYPE_MESSAGE:
@@ -84,14 +123,21 @@ def pb2json(pb, useFieldNumber=False):
     ''' convert google.protobuf.descriptor instance to JSON string '''
     js = {}
     # fields = pb.DESCRIPTOR.fields #all fields
-    fields = pb.ListFields()        #only filled (including extensions)
-    for field,value in fields:
+    #fields = pb.ListFields()        #only filled (including extensions)
+    #for field,value in fields:
+    for field in pb.DESCRIPTOR.fields:
+        value = getattr(pb, field.name, None)
+        if value is None:
+          continue
         if useFieldNumber:
             key = field.number
         else:
             key = field.name
         if field.type == FD.TYPE_MESSAGE:
-            ftype = partial(pb2json, useFieldNumber=useFieldNumber)
+            if is_time_field(field):
+                ftype = lambda x: x.ToJsonString()
+            else:
+                ftype = partial(pb2json, useFieldNumber=useFieldNumber)
         elif field.type in _ftype2js:
             ftype = _ftype2js[field.type]
         else:
@@ -105,6 +151,11 @@ def pb2json(pb, useFieldNumber=False):
         js[key] = js_value
     return js
 
+if not hasattr(globals(), 'long'):
+    long = int
+
+if not hasattr(globals(), 'unicode'):
+    unicode = str
 
 _ftype2js = {
     FD.TYPE_DOUBLE: float,

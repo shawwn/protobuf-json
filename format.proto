@@ -1,0 +1,46 @@
+// protoc -I/usr/local/Cellar/protobuf/3.6.1.3_1/include/ -I. --python_out=. format.proto
+
+syntax = "proto3";
+
+package danbooru;
+//package google.protobuf;
+
+import "google/protobuf/timestamp.proto";
+
+message Tags {
+  int32 id = 1;
+  string name = 2;
+  int32 category = 3;
+};
+message Entry {
+  int32 id = 1;
+  google.protobuf.Timestamp created_at = 2;
+  int32 uploader_id = 3;
+  int32 score = 4;
+  string source = 5;
+  string md5 = 6;
+  google.protobuf.Timestamp last_commented_at = 7;
+  string rating = 8;
+  int32 image_width = 9;
+  int32 image_height = 10;
+  bool is_note_locked = 11;
+  string file_ext = 12;
+  google.protobuf.Timestamp last_noted_at = 13;
+  bool is_rating_locked = 14;
+  int32 parent_id = 15;
+  bool has_children = 16;
+  int32 approver_id = 17;
+  int32 file_size = 18;
+  bool is_status_locked = 19;
+  int32 up_score = 20;
+  int32 down_score = 21;
+  bool is_pending = 22;
+  bool is_flagged = 23;
+  bool is_deleted = 24;
+  google.protobuf.Timestamp updated_at = 25;
+  bool is_banned = 26;
+  int32 pixiv_id = 27;
+  repeated Tags tags = 28;
+  repeated string pools = 29;
+  repeated int32 favs = 30;
+};
